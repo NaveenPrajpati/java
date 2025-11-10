@@ -10,20 +10,12 @@ class GymMembership {
     }
 
     public double calculateFees() {
-        double monthlyRate;
-        switch (type.toLowerCase()) {
-            case "basic":
-                monthlyRate = 500;
-                break;
-            case "standard":
-                monthlyRate = 800;
-                break;
-            case "premium":
-                monthlyRate = 1200;
-                break;
-            default:
-                monthlyRate = 600; // default rate
-        }
+        double monthlyRate = switch (type.toLowerCase()) {
+            case "basic" -> 500;
+            case "standard" -> 800;
+            case "premium" -> 1200;
+            default -> 600; // default rate
+        };
         return monthlyRate * duration;
     }
 
