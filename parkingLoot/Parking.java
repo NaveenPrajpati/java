@@ -2,182 +2,170 @@ package parkingLoot;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.Temporal;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
-class Gate {
-    String gateId;
-    GateType type;
+abstract class Gate {
+    protected final String gateId;
+    protected final GateType type;
 
-    public Gate(String gateId, GateType type) {
-        this.gateId = gateId;
+    protected Gate(String gateId, GateType type) {
+        this.gateId = gateId; this.type = type;
     }
+
+    public String getGateId() { return gateId; }
+    public GateType getType() { return type; }
 }
+
 
 enum GateType {
     ENTRY, EXIT
 }
 
 class EntryGate extends Gate {
-    private ParkingManager parkingManager;
-
-    public EntryGate(String gateId, ParkingManager parkingManager) {
+    private final ParkingManager manager;
+    public EntryGate(String gateId, ParkingManager manager) {
         super(gateId, GateType.ENTRY);
-        this.parkingManager = parkingManager;
+        this.manager = manager;
     }
-
-    Ticket processEntry(Vehicle vehicle) {
-        Ticket ticket = parkingManager.parkVehicle(vehicle);
-        return ticket;
-    }
+    public Ticket processEntry(Vehicle v) { return manager.parkVehicle(v); }
 }
 
-class ExitGate extends Gate {
-    private ParkingManager parkingManager;
 
-    public ExitGate(String gateId, ParkingManager parkingManager) {
+
+
+
+ class ExitGate extends Gate {
+    private final ParkingManager manager;
+    public ExitGate(String gateId, ParkingManager manager) {
         super(gateId, GateType.EXIT);
-        this.parkingManager = parkingManager;
+        this.manager = manager;
     }
-
-    double processExit(Ticket ticket) {
-        long duration = Duration.between((Temporal) ticket.entryTime, LocalDateTime.now()).toHours();
-        PricingStrategy ps = PricingStrategyFactory.getStrategy(ticket.vehicle.type);
-        double amount = ps.calculateCharges(duration, ticket.vehicle);
-        parkingManager.freeSpot(ticket);
+    public double processExit(Ticket t) {
+        long hours = Duration.between(t.getEntryTime(), LocalDateTime.now()).toHours();
+        PricingStrategy ps = PricingStrategyFactory.getStrategy(t.getVehicle().getType());
+        double amount = ps.calculateCharges(Math.max(1, hours), t.getVehicle());
+        manager.freeSpot(t);
         return amount;
     }
 }
 
+
+
 class Vehicle {
-    String licensePlate;
-    VehicleType type;
+    private final String licensePlate;
+    private final VehicleType type;
+
+    public Vehicle(String licensePlate, VehicleType type) {
+        this.licensePlate = licensePlate;
+        this.type = type;
+    }
+
+    public String getLicensePlate() { return licensePlate; }
+    public VehicleType getType() { return type; }
 }
+
 
 enum VehicleType {
     CAR, BIKE, TRUCK
 }
 
 class Ticket {
-    String ticketId;
-    Date entryTime;
-    ParkingSpot spot;
-    Vehicle vehicle;
-    // Gate entryGate;
+    private final String ticketId;
+    private final LocalDateTime entryTime;
+    private final ParkingSpot spot;
+    private final Vehicle vehicle;
+
+    public Ticket(String ticketId, LocalDateTime entryTime, ParkingSpot spot, Vehicle vehicle) {
+        this.ticketId = ticketId;
+        this.entryTime = entryTime;
+        this.spot = spot;
+        this.vehicle = vehicle;
+    }
+
+    public String getTicketId() { return ticketId; }
+    public LocalDateTime getEntryTime() { return entryTime; }
+    public ParkingSpot getSpot() { return spot; }
+    public Vehicle getVehicle() { return vehicle; }
 }
+
 
 class BikePricingStrategy implements PricingStrategy {
-
-    int baseRate = 10; // per hour
-
-    @Override
-    public double calculateCharges(long duration, Vehicle vehicle) {
-        return baseRate * duration;
+    private final int baseRatePerHour = 5;
+    public double calculateCharges(long durationHours, Vehicle vehicle) {
+        return baseRatePerHour * Math.max(1, durationHours);
     }
-
 }
+
 
 class CarPricingStrategy implements PricingStrategy {
-
-    int baseRate = 20; // per hour
-
-    @Override
-    public double calculateCharges(long duration, Vehicle vehicle) {
-        return baseRate * duration;
+    private final int baseRatePerHour = 10;
+    public double calculateCharges(long durationHours, Vehicle vehicle) {
+        return baseRatePerHour * Math.max(1, durationHours);
     }
-
 }
 
-class TruckPricingStrategy implements PricingStrategy {
 
-    int baseRate = 50; // per hour
-
-    @Override
-    public double calculateCharges(long duration, Vehicle vehicle) {
-        return baseRate * duration;
+ class TruckPricingStrategy implements PricingStrategy {
+    private final int baseRatePerHour = 20;
+    public double calculateCharges(long durationHours, Vehicle vehicle) {
+        return baseRatePerHour * Math.max(1, durationHours);
     }
-
 }
+
 
 interface PricingStrategy {
     double calculateCharges(long duration, Vehicle vehicle);
 }
 
-class PricingStrategyFactory {
-    static PricingStrategy getStrategy(VehicleType type) {
+ class PricingStrategyFactory {
+    public static PricingStrategy getStrategy(VehicleType type) {
         switch (type) {
-            case CAR:
-                return new CarPricingStrategy();
-            case BIKE:
-                return new BikePricingStrategy();
-            case TRUCK:
-                return new TruckPricingStrategy();
-            default:
-                throw new IllegalArgumentException("Unknown type");
+            case CAR: return new CarPricingStrategy();
+            case BIKE: return new BikePricingStrategy();
+            case TRUCK: return new TruckPricingStrategy();
+            default: throw new IllegalArgumentException("Unsupported type: " + type);
         }
     }
-}
-
+ }
 class ParkingManager {
-    private List<ParkingFloor> floors;
+    private final List<ParkingFloor> floors;
 
     public ParkingManager(List<ParkingFloor> floors) {
-        this.floors = floors;
+        this.floors = Objects.requireNonNull(floors);
     }
 
-    public ParkingSpot findSpot(Vehicle vehicle) {
-        for (ParkingFloor floor : floors) {
-            for (ParkingSpot spot : floor.spots) {
-                if (spot.isFree && spot.allowedType == vehicle.type) {
-                    return spot;
-                }
+    public ParkingSpot findSpot(Vehicle v) {
+        for (ParkingFloor f : floors) {
+            for (ParkingSpot s : f.getSpots()) {
+                if (s.isFree() && s.getAllowedType() == v.getType()) return s;
             }
         }
         return null;
     }
 
-    public Ticket parkVehicle(Vehicle vehicle) {
-        ParkingSpot spot = findSpot(vehicle);
-        if (spot == null) {
-            throw new RuntimeException("No Spot Available");
-        }
-
-        spot.isFree = false;
-        spot.parkedVehicle = vehicle;
-
-        // return new Ticket(
-        // UUID.randomUUID().toString(),
-        // LocalDateTime.now(),
-        // spot,
-        // vehicle
-        // );
-        return new Ticket();
+    public Ticket parkVehicle(Vehicle v) {
+        ParkingSpot s = findSpot(v);
+        if (s == null) throw new IllegalStateException("No spot available for: " + v.getType());
+        s.park(v);
+        return new Ticket(UUID.randomUUID().toString(), LocalDateTime.now(), s, v);
     }
 
-    public void freeSpot(Ticket ticket) {
-        ParkingSpot spot = ticket.spot;
-        spot.isFree = true;
-        spot.parkedVehicle = null;
-    }
+    public void freeSpot(Ticket t) { t.getSpot().free(); }
 
     public List<ParkingSpot> getAvailableSpots(VehicleType type) {
-
-        List<ParkingSpot> list = new ArrayList<ParkingSpot>();
-        for (ParkingFloor floor : floors) {
-            for (ParkingSpot spot : floor.spots) {
-                if (spot.isFree && spot.allowedType == type) {
-                    list.add(spot);
-                }
+        List<ParkingSpot> res = new ArrayList<>();
+        for (ParkingFloor f : floors) {
+            for (ParkingSpot s : f.getSpots()) {
+                if (s.isFree() && s.getAllowedType() == type) res.add(s);
             }
         }
-        return list;
+        return res;
     }
-
 }
+
 
 class PaymentProcessor {
     void processPayment(String ticketId, double amount) {
@@ -216,7 +204,31 @@ public class Parking {
 
     public static void main(String[] args) {
         System.out.println("Welcome to ParkingLoot System");
-        Vehicle vehicle = new Vehicle();
+   ParkingLot lot = new ParkingLot("NeoLot");
+
+        ParkingFloor f1 = new ParkingFloor("F1");
+        f1.addSpot(new ParkingSpot("F1-S1", VehicleType.CAR));
+        f1.addSpot(new ParkingSpot("F1-S2", VehicleType.BIKE));
+        f1.addSpot(new ParkingSpot("F1-S3", VehicleType.TRUCK));
+        lot.addFloor(f1);
+
+        EntryGate eg = lot.newEntryGate("E1");
+        ExitGate xg = lot.newExitGate("X1");
+
+        Vehicle v = new Vehicle("KA-01-1234", VehicleType.CAR);
+        Ticket t = eg.processEntry(v);
+        System.out.println("Ticket: " + t.getTicketId());
+
+        // simulate time passing (in real tests, inject a Clock)
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        double pay = xg.processExit(t);
+        System.out.println("Amount due: " + pay);
 
     }
 }
