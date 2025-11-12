@@ -2,7 +2,6 @@ package vendingMachine;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 class Product {
     private String code;
@@ -170,8 +169,8 @@ class DispenseState implements State {
         Product p = vm.getSelectedProduct();
         System.out.println("Dispensing: " + p.getName());
 
-        vm.getInventory().removeProduct(p.getCode()); // ✅ remove from stock
-        vm.deductBalance(p.getPrice()); // ✅ deduct money
+        vm.getInventory().removeProduct(p.getCode());
+        vm.deductBalance(p.getPrice());
 
         System.out.println("Remaining Balance: " + vm.getBalance());
 
@@ -262,6 +261,17 @@ class VendingMachine {
 
 public class Machine {
     public static void main(String[] args) {
+        VendingMachine vm = new VendingMachine();
+        vm.getInventory().addProduct(new Product("A1", "Soda", 20));
+        vm.getInventory().addProduct(new Product("B1", "Chips", 15));
+        vm.getInventory().addProduct(new Product("C1", "Coke", 20));
+
+        vm.insertCoin(Coin.TEN);
+        vm.selectProduct("A1");
+        vm.insertCoin(Coin.TEN);
+
+        vm.selectProduct("A1");
+        vm.dispense();
 
     }
 }
