@@ -1,4 +1,4 @@
-package snackLadder;
+package snackLadder3;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 
+// Stragtegy + Game Loop Pattern
 class Player {
     public Player(String name, int position) {
         this.name = name;

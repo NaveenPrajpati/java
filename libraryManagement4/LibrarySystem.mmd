@@ -1,0 +1,215 @@
+classDiagram
+    %% Enums
+    class BookStatus {
+        <<enumeration>>
+        AVAILABLE
+        BORROWED
+        RESERVED
+        LOST
+    }
+    
+    class MembershipType {
+        <<enumeration>>
+        STUDENT
+        FACULTY
+        PUBLIC
+    }
+
+    %% Core Domain Models
+    class Book {
+        -String isbn
+        -String title
+        -String author
+        -String category
+        -String publisher
+        -int publicationYear
+        +Book(isbn, title, author, category)
+        +getIsbn() String
+        +getTitle() String
+        +getAuthor() String
+        +getCategory() String
+        +setTitle(title)
+        +setAuthor(author)
+        +equals(Object) boolean
+        +hashCode() int
+    }
+
+    class BookItem {
+        -String barcode
+        -Book book
+        -BookStatus status
+        -String rack
+        -LocalDate borrowedDate
+        -LocalDate dueDate
+        +BookItem(barcode, book, rack)
+        +getBarcode() String
+        +getBook() Book
+        +getStatus() BookStatus
+        +borrow(dueDate)
+        +returnItem()
+        +isOverdue() boolean
+    }
+
+    class User {
+        -String id
+        -String name
+        -String email
+        -MembershipType membershipType
+        -List~BorrowRecord~ borrowRecords
+        -int maxBorrowLimit
+        +User(id, name, email, type)
+        +getId() String
+        +getName() String
+        +getActiveBorrows() List~BorrowRecord~
+        +canBorrow() boolean
+        +addBorrowRecord(record)
+    }
+
+    class BorrowRecord {
+        -String id
+        -BookItem bookItem
+        -User user
+        -LocalDate borrowDate
+        -LocalDate dueDate
+        -LocalDate returnDate
+        -double fine
+        +BorrowRecord(bookItem, user, dueDate)
+        +isOverdue() boolean
+        +setReturnDate(date)
+        +setFine(fine)
+    }
+
+    %% Strategy Pattern - Search
+    class SearchStrategy {
+        <<interface>>
+        +search(items, query) List~BookItem~
+    }
+
+    class TitleSearchStrategy {
+        +search(items, query) List~BookItem~
+    }
+
+    class AuthorSearchStrategy {
+        +search(items, query) List~BookItem~
+    }
+
+    class IsbnSearchStrategy {
+        +search(items, query) List~BookItem~
+    }
+
+    class CategorySearchStrategy {
+        +search(items, query) List~BookItem~
+    }
+
+    %% Repository Pattern
+    class LibraryRepository {
+        <<interface>>
+        +addBookItem(item)
+        +getBookItemByBarcode(barcode) BookItem
+        +getAllItems() List~BookItem~
+        +getAvailableItems() List~BookItem~
+        +updateBookItem(item)
+        +removeBookItem(barcode) boolean
+    }
+
+    class InMemoryLibraryRepository {
+        -Map~String, BookItem~ items
+        +addBookItem(item)
+        +getBookItemByBarcode(barcode) BookItem
+        +getAllItems() List~BookItem~
+        +getAvailableItems() List~BookItem~
+        +updateBookItem(item)
+        +removeBookItem(barcode) boolean
+    }
+
+    class UserRepository {
+        <<interface>>
+        +addUser(user)
+        +getUserById(id) User
+        +getAllUsers() List~User~
+        +removeUser(id) boolean
+    }
+
+    class InMemoryUserRepository {
+        -Map~String, User~ users
+        +addUser(user)
+        +getUserById(id) User
+        +getAllUsers() List~User~
+        +removeUser(id) boolean
+    }
+
+    %% Fine Calculator Strategy
+    class FineCalculator {
+        <<interface>>
+        +calculateFine(record) double
+    }
+
+    class StandardFineCalculator {
+        -double DAILY_FINE
+        -double MAX_FINE
+        +calculateFine(record) double
+    }
+
+    %% Service Layer
+    class LibraryService {
+        -LibraryRepository bookRepository
+        -UserRepository userRepository
+        -FineCalculator fineCalculator
+        -SearchStrategy searchStrategy
+        +LibraryService(bookRepo, userRepo, fineCalc)
+        +setSearchStrategy(strategy)
+        +search(query) List~BookItem~
+        +addBookItem(item)
+        +addUser(user)
+        +borrowBook(barcode, userId) BorrowRecord
+        +returnBook(barcode, userId) double
+        +getAvailableBooks() List~BookItem~
+        +getUserBorrowHistory(userId) List~BorrowRecord~
+        +getOverdueBooks() List~BorrowRecord~
+    }
+
+    %% Factory Pattern
+    class BookFactory {
+        <<factory>>
+        +createBook(isbn, title, author, category)$ Book
+    }
+
+    class BookItemFactory {
+        <<factory>>
+        +createBookItem(book, rack)$ BookItem
+        -generateBarcode(book)$ String
+    }
+
+    %% Relationships - Composition and Aggregation
+    BookItem *-- Book : contains
+    BookItem --> BookStatus : uses
+    User *-- BorrowRecord : contains
+    User --> MembershipType : has
+    BorrowRecord --> BookItem : references
+    BorrowRecord --> User : references
+
+    %% Strategy Pattern Relationships
+    SearchStrategy <|.. TitleSearchStrategy : implements
+    SearchStrategy <|.. AuthorSearchStrategy : implements
+    SearchStrategy <|.. IsbnSearchStrategy : implements
+    SearchStrategy <|.. CategorySearchStrategy : implements
+
+    %% Repository Pattern Relationships
+    LibraryRepository <|.. InMemoryLibraryRepository : implements
+    UserRepository <|.. InMemoryUserRepository : implements
+    InMemoryLibraryRepository o-- BookItem : stores
+    InMemoryUserRepository o-- User : stores
+
+    %% Strategy Pattern Relationships
+    FineCalculator <|.. StandardFineCalculator : implements
+
+    %% Service Dependencies
+    LibraryService --> LibraryRepository : uses
+    LibraryService --> UserRepository : uses
+    LibraryService --> FineCalculator : uses
+    LibraryService --> SearchStrategy : uses
+
+    %% Factory Relationships
+    BookFactory ..> Book : creates
+    BookItemFactory ..> BookItem : creates
+    BookItemFactory --> Book : uses

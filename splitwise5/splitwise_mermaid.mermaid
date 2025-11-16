@@ -1,0 +1,117 @@
+graph TB
+    subgraph "SINGLETON PATTERN"
+        SM[SplitwiseManager<br/>- getInstance<br/>- addUser<br/>- addExpenseWithUndo<br/>- undo/redo]
+        style SM fill:#ff6b6b,stroke:#c92a2a,color:#fff
+        Note1["WHY: Only one manager instance<br/>should exist globally"]
+        style Note1 fill:#ffe066,stroke:#fab005
+    end
+
+    subgraph "DOMAIN MODELS"
+        User[User<br/>- id, name<br/>- email, mobile]
+        Expense[Expense<br/>- id, paidBy<br/>- amount, splits<br/>- description, category]
+        Split[Split<br/>Abstract<br/>- user<br/>- amount]
+        EqualSplit[EqualSplit]
+        ExactSplit[ExactSplit<br/>- amount]
+        PercentSplit[PercentSplit<br/>- percent]
+        
+        Split --> EqualSplit
+        Split --> ExactSplit
+        Split --> PercentSplit
+        
+        style User fill:#51cf66,stroke:#2f9e44,color:#000
+        style Expense fill:#51cf66,stroke:#2f9e44,color:#000
+        style Split fill:#51cf66,stroke:#2f9e44,color:#000
+    end
+
+    subgraph "STRATEGY PATTERN"
+        SplitStrategy[SplitStrategy<br/>Interface<br/>+ validate]
+        EqualStrategy[EqualSplitStrategy<br/>+ validate]
+        ExactStrategy[ExactSplitStrategy<br/>+ validate]
+        PercentStrategy[PercentSplitStrategy<br/>+ validate]
+        
+        SplitStrategy --> EqualStrategy
+        SplitStrategy --> ExactStrategy
+        SplitStrategy --> PercentStrategy
+        
+        style SplitStrategy fill:#4dabf7,stroke:#1971c2,color:#fff
+        style EqualStrategy fill:#74c0fc,stroke:#339af0
+        style ExactStrategy fill:#74c0fc,stroke:#339af0
+        style PercentStrategy fill:#74c0fc,stroke:#339af0
+        
+        Note2["WHY: Different validation<br/>algorithms for each split type<br/>BENEFIT: Easy to add new types"]
+        style Note2 fill:#ffe066,stroke:#fab005
+    end
+
+    subgraph "FACTORY PATTERN"
+        ExpenseFactory[ExpenseFactory<br/>+ createExpense<br/>- getStrategy]
+        
+        style ExpenseFactory fill:#a78bfa,stroke:#7c3aed,color:#fff
+        
+        Note3["WHY: Centralizes complex<br/>expense creation logic<br/>BENEFIT: Hides validation<br/>& amount calculation"]
+        style Note3 fill:#ffe066,stroke:#fab005
+    end
+
+    subgraph "BUILDER PATTERN"
+        ExpenseBuilder[ExpenseBuilder<br/>- type, paidBy<br/>- amount, splits<br/>- description, category<br/>+ setType<br/>+ setPaidBy<br/>+ setAmount<br/>+ setSplits<br/>+ setDescription<br/>+ setCategory<br/>+ build]
+        
+        style ExpenseBuilder fill:#f783ac,stroke:#e64980,color:#fff
+        
+        Note4["WHY: Expense has many<br/>parameters, some optional<br/>BENEFIT: Readable,<br/>method chaining"]
+        style Note4 fill:#ffe066,stroke:#fab005
+    end
+
+    subgraph "OBSERVER PATTERN"
+        ExpenseObserver[ExpenseObserver<br/>Interface<br/>+ onExpenseAdded]
+        EmailObserver[EmailNotificationObserver<br/>+ onExpenseAdded]
+        SMSObserver[SMSNotificationObserver<br/>+ onExpenseAdded]
+        
+        ExpenseObserver --> EmailObserver
+        ExpenseObserver --> SMSObserver
+        
+        style ExpenseObserver fill:#20c997,stroke:#12b886,color:#fff
+        style EmailObserver fill:#63e6be,stroke:#20c997
+        style SMSObserver fill:#63e6be,stroke:#20c997
+        
+        Note5["WHY: Users need notifications<br/>when added to expenses<br/>BENEFIT: Loose coupling<br/>between logic & notifications"]
+        style Note5 fill:#ffe066,stroke:#fab005
+    end
+
+    subgraph "COMMAND PATTERN"
+        Command[Command<br/>Interface<br/>+ execute<br/>+ undo<br/>+ getDescription]
+        AddExpenseCommand[AddExpenseCommand<br/>- manager<br/>- expense<br/>+ execute<br/>+ undo]
+        CommandManager[CommandManager<br/>- executedCommands<br/>- undoneCommands<br/>+ executeCommand<br/>+ undo<br/>+ redo<br/>+ showHistory]
+        
+        Command --> AddExpenseCommand
+        
+        style Command fill:#ffa94d,stroke:#fd7e14,color:#000
+        style AddExpenseCommand fill:#ffc078,stroke:#ff922b
+        style CommandManager fill:#ffc078,stroke:#ff922b
+        
+        Note6["WHY: Need undo/redo<br/>for expenses<br/>BENEFIT: Encapsulates operations,<br/>maintains history"]
+        style Note6 fill:#ffe066,stroke:#fab005
+    end
+
+    subgraph "BALANCE MANAGEMENT"
+        BalanceSheet[BalanceSheet<br/>- sheet Map<br/>+ addTransaction<br/>+ removeTransaction<br/>+ simplifyBalances<br/>+ showBalances]
+        
+        style BalanceSheet fill:#845ef7,stroke:#6741d9,color:#fff
+    end
+
+    %% Relationships
+    SM --> User
+    SM --> BalanceSheet
+    SM --> ExpenseObserver
+    SM --> CommandManager
+    
+    ExpenseBuilder --> ExpenseFactory
+    ExpenseFactory --> SplitStrategy
+    ExpenseFactory --> Expense
+    
+    Expense --> User
+    Expense --> Split
+    
+    AddExpenseCommand --> SM
+    AddExpenseCommand --> Expense
+    CommandManager --> Command
+    
+    SM --> Command

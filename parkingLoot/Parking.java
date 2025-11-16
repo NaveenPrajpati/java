@@ -12,13 +12,18 @@ abstract class Gate {
     protected final GateType type;
 
     protected Gate(String gateId, GateType type) {
-        this.gateId = gateId; this.type = type;
+        this.gateId = gateId;
+        this.type = type;
     }
 
-    public String getGateId() { return gateId; }
-    public GateType getType() { return type; }
-}
+    public String getGateId() {
+        return gateId;
+    }
 
+    public GateType getType() {
+        return type;
+    }
+}
 
 enum GateType {
     ENTRY, EXIT
@@ -26,23 +31,25 @@ enum GateType {
 
 class EntryGate extends Gate {
     private final ParkingManager manager;
+
     public EntryGate(String gateId, ParkingManager manager) {
         super(gateId, GateType.ENTRY);
         this.manager = manager;
     }
-    public Ticket processEntry(Vehicle v) { return manager.parkVehicle(v); }
+
+    public Ticket processEntry(Vehicle v) {
+        return manager.parkVehicle(v);
+    }
 }
 
-
-
-
-
- class ExitGate extends Gate {
+class ExitGate extends Gate {
     private final ParkingManager manager;
+
     public ExitGate(String gateId, ParkingManager manager) {
         super(gateId, GateType.EXIT);
         this.manager = manager;
     }
+
     public double processExit(Ticket t) {
         long hours = Duration.between(t.getEntryTime(), LocalDateTime.now()).toHours();
         PricingStrategy ps = PricingStrategyFactory.getStrategy(t.getVehicle().getType());
@@ -51,8 +58,6 @@ class EntryGate extends Gate {
         return amount;
     }
 }
-
-
 
 class Vehicle {
     private final String licensePlate;
@@ -63,10 +68,14 @@ class Vehicle {
         this.type = type;
     }
 
-    public String getLicensePlate() { return licensePlate; }
-    public VehicleType getType() { return type; }
-}
+    public String getLicensePlate() {
+        return licensePlate;
+    }
 
+    public VehicleType getType() {
+        return type;
+    }
+}
 
 enum VehicleType {
     CAR, BIKE, TRUCK
@@ -85,51 +94,66 @@ class Ticket {
         this.vehicle = vehicle;
     }
 
-    public String getTicketId() { return ticketId; }
-    public LocalDateTime getEntryTime() { return entryTime; }
-    public ParkingSpot getSpot() { return spot; }
-    public Vehicle getVehicle() { return vehicle; }
-}
+    public String getTicketId() {
+        return ticketId;
+    }
 
+    public LocalDateTime getEntryTime() {
+        return entryTime;
+    }
+
+    public ParkingSpot getSpot() {
+        return spot;
+    }
+
+    public Vehicle getVehicle() {
+        return vehicle;
+    }
+}
 
 class BikePricingStrategy implements PricingStrategy {
     private final int baseRatePerHour = 5;
+
     public double calculateCharges(long durationHours, Vehicle vehicle) {
         return baseRatePerHour * Math.max(1, durationHours);
     }
 }
-
 
 class CarPricingStrategy implements PricingStrategy {
     private final int baseRatePerHour = 10;
+
     public double calculateCharges(long durationHours, Vehicle vehicle) {
         return baseRatePerHour * Math.max(1, durationHours);
     }
 }
 
-
- class TruckPricingStrategy implements PricingStrategy {
+class TruckPricingStrategy implements PricingStrategy {
     private final int baseRatePerHour = 20;
+
     public double calculateCharges(long durationHours, Vehicle vehicle) {
         return baseRatePerHour * Math.max(1, durationHours);
     }
 }
-
 
 interface PricingStrategy {
     double calculateCharges(long duration, Vehicle vehicle);
 }
 
- class PricingStrategyFactory {
+class PricingStrategyFactory {
     public static PricingStrategy getStrategy(VehicleType type) {
         switch (type) {
-            case CAR: return new CarPricingStrategy();
-            case BIKE: return new BikePricingStrategy();
-            case TRUCK: return new TruckPricingStrategy();
-            default: throw new IllegalArgumentException("Unsupported type: " + type);
+            case CAR:
+                return new CarPricingStrategy();
+            case BIKE:
+                return new BikePricingStrategy();
+            case TRUCK:
+                return new TruckPricingStrategy();
+            default:
+                throw new IllegalArgumentException("Unsupported type: " + type);
         }
     }
- }
+}
+
 class ParkingManager {
     private final List<ParkingFloor> floors;
 
@@ -140,7 +164,8 @@ class ParkingManager {
     public ParkingSpot findSpot(Vehicle v) {
         for (ParkingFloor f : floors) {
             for (ParkingSpot s : f.getSpots()) {
-                if (s.isFree() && s.getAllowedType() == v.getType()) return s;
+                if (s.isFree() && s.getAllowedType() == v.getType())
+                    return s;
             }
         }
         return null;
@@ -148,24 +173,27 @@ class ParkingManager {
 
     public Ticket parkVehicle(Vehicle v) {
         ParkingSpot s = findSpot(v);
-        if (s == null) throw new IllegalStateException("No spot available for: " + v.getType());
+        if (s == null)
+            throw new IllegalStateException("No spot available for: " + v.getType());
         s.park(v);
         return new Ticket(UUID.randomUUID().toString(), LocalDateTime.now(), s, v);
     }
 
-    public void freeSpot(Ticket t) { t.getSpot().free(); }
+    public void freeSpot(Ticket t) {
+        t.getSpot().free();
+    }
 
     public List<ParkingSpot> getAvailableSpots(VehicleType type) {
         List<ParkingSpot> res = new ArrayList<>();
         for (ParkingFloor f : floors) {
             for (ParkingSpot s : f.getSpots()) {
-                if (s.isFree() && s.getAllowedType() == type) res.add(s);
+                if (s.isFree() && s.getAllowedType() == type)
+                    res.add(s);
             }
         }
         return res;
     }
 }
-
 
 class PaymentProcessor {
     void processPayment(String ticketId, double amount) {
@@ -204,7 +232,7 @@ public class Parking {
 
     public static void main(String[] args) {
         System.out.println("Welcome to ParkingLoot System");
-   ParkingLot lot = new ParkingLot("NeoLot");
+        ParkingLot lot = new ParkingLot("NeoLot");
 
         ParkingFloor f1 = new ParkingFloor("F1");
         f1.addSpot(new ParkingSpot("F1-S1", VehicleType.CAR));

@@ -1,8 +1,9 @@
-package vendingMachine;
+package vendingMachine1;
 
 import java.util.ArrayList;
 import java.util.List;
 
+//State Pattern
 class Product {
     private String code;
     private String name;

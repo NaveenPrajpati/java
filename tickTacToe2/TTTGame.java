@@ -1,7 +1,8 @@
-package tickTacToe;
+package tickTacToe2;
 
 import java.util.Scanner;
 
+//Strategy Pattern
 class Player {
     public Player(String name, char symbol) {
         this.name = name;
